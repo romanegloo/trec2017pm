@@ -1,0 +1,270 @@
+# This file contains the definitions of customized field types for clinical
+# trial dataset.
+#
+# example of posting "add-field" request:
+
+```
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+  "add-field":{
+     "name":"sell-by",
+     "type":"tdate",
+     "stored":true }
+}' http://localhost:8983/solr/gettingstarted/schema
+```
+
+schema (updating field types)
+
+* brief_title
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"brief_title",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* brief_summary [trials]
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"brief_summary",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* condition [trials]
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"condition",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* condition_browse [trials]
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"condition_browse",
+        "type":"strings",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* detailed_description [trials]
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"detailed_description",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* eligibility-criteria [trials]
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"eligibility-criteria",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+
+* eligibility-gender [trials]
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"eligibility-gender",
+        "type":"string",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* intervention
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"intervention",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+
+* intervention_browse
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"intervention_browse",
+        "type":"strings",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+TODO: check from here
+* keyword
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"keyword",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* official_title
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"official_title",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* overall_status
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"overall_status",
+        "type":"strings",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* phase
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"phase",
+        "type":"strings",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-allocation
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-allocation",
+        "type":"text_general",
+        "indexed":false,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-intervention_model
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-intervention_model",
+        "type":"text_general",
+        "indexed":false,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-masking
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-masking",
+        "type":"text_general",
+        "indexed":false,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-masking_description
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-masking_description",
+        "type":"text_general",
+        "indexed":false,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-observational_model
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-observational_model",
+        "type":"text_general",
+        "indexed":false,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-primary_purpose
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-primary_purpose",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":true
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_design_info-time_perspective
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_design_info-time_perspective",
+        "type":"text_general",
+        "indexed":false,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* study_type
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"study_type",
+        "type":"string",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* eligibility-maximum_age
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"eligibility-maximum_age",
+        "type":"string",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* eligibility-minimum_age
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"eligibility-minimum_age",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* eligibility-min_age_norm
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"eligibility-min_age_norm",
+        "type":"float",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* eligibility-max_age_norm
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "replace-field": {
+        "name":"eligibility-max_age_norm",
+        "type":"float",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/trials/schema
+
+* id
