@@ -1,0 +1,130 @@
+<topics task="2017 TREC Precision Medicine - Extra Topics">
+  <topic number="1">
+    <disease>Carcinoma of unknown primary</disease>
+    <gene>JAK2 (V617F), PIK3CA (E81K)</gene>
+    <demographic>65-year-old male</demographic>
+    <other>Hypertension</other>
+    <pmid>27900363, 26182302</pmid>
+    <nct>none</nct>
+  </topic>
+  <topic number="2">
+    <disease>Colon cancer</disease>
+    <gene>Microsatellite Instability (high); MLH1 methylation positive</gene>
+    <demographic>65-year-old male</demographic>
+    <other>Hypercholesterolemia</other>
+    <pmid>28455965, 28453697, 28341242, 28327908</pmid>
+    <nct>NCT02912559, NCT00898846</nct>
+  </topic>
+  <topic number="3">
+    <disease>Anal melanoma</disease>
+    <gene>KIT (L576P)</gene>
+    <demographic>56-year-old male</demographic>
+    <other>Depression, Hypertension</other>
+    <pmid>17372901, 26546509</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="4">
+    <disease>Pancreatic adenocarcinoma</disease>
+    <gene>KRAS (G12D)</gene>
+    <demographic>69-year-old male</demographic>
+    <other>Alcoholism, Cirrhosis, Stroke</other>
+    <pmid>27010960, 26156229, 25748236, 27308320</pmid>
+    <nct>NCT01394120</nct>
+  </topic>
+  <topic number="5">
+    <disease>Squamous cell carcinoma, head and neck</disease>
+    <gene>Human Papilloma Virus (Type 16 positive)</gene>
+    <demographic>59-year-old male</demographic>
+    <other>Hypertension</other>
+    <pmid>27305732, 27061545, 25803099</pmid>
+    <nct>NCT01268579</nct>
+  </topic>
+  <topic number="6">
+    <disease>Biliary tract cancer</disease>
+    <gene>HER2/neu Amplification</gene>
+    <demographic>64-year-old female</demographic>
+    <other>Hypertension</other>
+    <pmid>27658789, 26022204, 22433475</pmid>
+    <nct>NCT00478140</nct>
+  </topic>
+  <topic number="7">
+    <disease>Appendiceal cancer</disease>
+    <gene>p53 (H193R)</gene>
+    <demographic>23-year-old female</demographic>
+    <other>None</other>
+    <pmid>28280620, 26160192</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="8">
+    <disease>Prostate cancer</disease>
+    <gene>AR Amplification</gene>
+    <demographic>76-year-old male</demographic>
+    <other>Arthritis</other>
+    <pmid>27959342, 28144969, 28089830</pmid>
+    <nct>NCT01393730</nct>
+  </topic>
+  <topic number="9">
+    <disease>Pancreatic cancer</disease>
+    <gene>ARID1A</gene>
+    <demographic>62-year-old female</demographic>
+    <other>Diabetes</other>
+    <pmid>26154128, 25719666, 25714017</pmid>
+    <nct>NCT02893085</nct>
+  </topic>
+  <topic number="10">
+    <disease>Endometrial cancer</disease>
+    <gene>PIK3CA Amplification</gene>
+    <demographic>44-year-old female</demographic>
+    <other>Diabetes</other>
+    <pmid>21531001, 19261849, 17258789</pmid>
+    <nct>NCT01013324</nct>
+  </topic>
+  <topic number="11">
+    <disease>Moderately differentiated pancreatic adenocarcinoma</disease>
+    <gene>KRAS, TP53, CDKN2A</gene>
+    <demographic>44-year-old female</demographic>
+    <other>None</other>
+    <pmid>14677066, 23303473</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="12">
+    <disease>Moderately differentiated pancreatic adenocarcinoma</disease>
+    <gene>KRAS, TP53</gene>
+    <demographic>65-year-old male</demographic>
+    <other>None</other>
+    <pmid>14677066, 23303473</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="13">
+    <disease>Pancreatic adenocarcinoma</disease>
+    <gene>XRCC1</gene>
+    <demographic>37-year-old female</demographic>
+    <other>None</other>
+    <pmid>17230526, 16844323, 16520463</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="14">
+    <disease>Pancreatic adenocarcinoma</disease>
+    <gene>XRCC1</gene>
+    <demographic>76-year-old male</demographic>
+    <other>None</other>
+    <pmid>12183419, 18544627, 16520463, 17230526</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="15">
+    <disease>Intraductal papillary mucinous neoplasm with high-grade dysplasia</disease>
+    <gene>FGFR4, KIT</gene>
+    <demographic>72-year-old male</demographic>
+    <other>None</other>
+    <pmid>None</pmid>
+    <nct>None</nct>
+  </topic>
+  <topic number="16">
+    <disease>Pancreatic adenocarcinoma</disease>
+    <gene>ERCC2</gene>
+    <demographic>63-year-old male</demographic>
+    <other>None</other>
+    <pmid>18544627</pmid>
+    <nct>None</nct>
+  </topic>
+</topics>

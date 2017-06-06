@@ -3,19 +3,22 @@ import sys
 import lxml.etree as et
 import re
 import requests
+import json
+import pprint
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from config import config as cfg
 from Trec2017pm.logger import Logger
 from Trec2017pm.utils import age_normalize
 
+logger = Logger()  # singleton
+pp = pprint.PrettyPrinter(indent=4)
 
 def run_import_docs():
     """
     Given the xslt file, the medline files will be transformed and used to 
     update the existing record or create new record in the Solr core (medline)
     """
-    logger = Logger()  # singleton
 
     # - read xsl file
     if not os.path.isfile(cfg.PATHS['xsl-medline']):
@@ -71,18 +74,17 @@ def run_import_docs():
         headers = {'content-type': 'text/xml; charset=utf-8'}
         while attempts > 0:
             try:
-                response = requests.post(url, data=et.tostring(doc_trans),
-                                         headers=headers)
+                r = requests.post(url, data=et.tostring(doc_trans),
+                                  headers=headers)
             except requests.exceptions.RequestException as e:
-                print(response)
                 logger.log('ERROR', 'request exception: {}'.format(e),
                            die=True, printout=True)
 
-            if response.status_code != 200:
+            if r.status_code != 200:
                 attempts -= 1
                 logger.log('ERROR', 'requests error:')
-                logger.log('ERROR', response.text)
-                response.raise_for_status()
+                logger.log('ERROR', r.text)
+                r.raise_for_status()
                 if attempts < 0:
                     logger.log('CRITICAL', 'terminating', die=True,
                                printout=True)
@@ -106,7 +108,6 @@ def run_import_trials():
     used to update the existing record or create new record in the Solr core 
     (trials)
     """
-    logger = Logger()
 
     batch = 500
     url = "http://localhost:8983/solr/trials/update?commit=true"
@@ -177,19 +178,17 @@ def run_import_trials():
 
             while attempts > 0:
                 try:
-                    response = requests.post(url, data=et.tostring(req),
-                                             headers=headers)
+                    r = requests.post(url, data=et.tostring(req),
+                                     headers=headers)
                 except requests.exceptions.RequestException as e:
-                    print(response)
                     logger.log('ERROR', 'request exception: {}'.format(e))
-                    logger.log('ERROR', response, die=True, printout=True)
+                    logger.log('ERROR', r, die=True, printout=True)
 
-                if response.status_code != 200:
+                if r.status_code != 200:
                     attempts -= 1
-                    logger.log('ERROR', 'requests error:')
-                    logger.log('ERROR', response.text)
+                    logger.log('ERROR', r.text)
                     logger.log('ERROR', 'data: \n' + str(et.tostring(req)))
-                    response.raise_for_status()
+                    r.raise_for_status()
                     if attempts < 0:
                         logger.log('CRITICAL', 'terminating', die=True,
                                    printout=True)
@@ -207,3 +206,28 @@ def run_import_trials():
                                    format(i+1, len(trial_files)))
                     break
     logger.log('INFO', 'importing trials completed', printout=True)
+
+
+def query(t, collection="medline"):
+    url = "http://localhost:8983/solr/" + collection + "/query?"
+    if 'fl' in cfg.CONF_SOLR:
+        url += 'fl=' + cfg.CONF_SOLR['fl'] + '&'
+    if 'rows' in cfg.CONF_SOLR:
+        url += 'rows=' + cfg.CONF_SOLR['rows'] + '&'
+    headers = {
+        'content-type': 'application/json',
+        'Accept-Charset': 'UTF-8'}
+    try:
+        r = requests.post(url, data=json.dumps(t), headers=headers)
+    except requests.exceptions.RequestException as e:
+        logger.log('ERROR', 'request exception: {}'.format(e))
+        logger.log('ERROR', r, die=True, printout=True)
+
+    if r.status_code != 200:
+        logger.log('ERROR', r.text, printout=True)
+    else:
+        logger.log('INFO', 'query processed: {}'.format(t))
+        res = json.loads(r.text)
+        # pp.pprint(res)
+        return res
+

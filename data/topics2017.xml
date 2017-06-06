@@ -13,7 +13,7 @@
   </topic>
   <topic number="3">
     <disease>Meningioma</disease>
-    <gene>NF2 (K322), AKT1(E17K)</gene>
+    <gene>NF2 (K322), AKT1 (E17K)</gene>
     <demographic>45-year-old female</demographic>
     <other>None</other>
   </topic>
@@ -43,7 +43,7 @@
   </topic>
   <topic number="8">
     <disease>Lung cancer</disease>
-    <gene>EML4-ALK Fusion transcript</gene>
+    <gene>EML4-ALK Fusion</gene>
     <demographic>52-year-old male</demographic>
     <other>Hypertension, Osteoarthritis</other>
   </topic>

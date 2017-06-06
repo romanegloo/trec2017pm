@@ -23,8 +23,6 @@ class Logger(object):
         logging.basicConfig(filename=cfg.PATHS['logfile'], filemode='a',
                             level=logging.INFO,
                             format='%(asctime)s %(levelname)s:: %(message)s')
-        self.log('INFO', '-'*80 + '\ncommand requested: ' + cfg.command,
-                 printout=True)
 
         # initialize twilio client
         self.twilio_cl = Client(cfg.CONF_TWILIO['account_sid'],
