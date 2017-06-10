@@ -26,25 +26,24 @@ def update_obj(dst, src):
     for key, value in src.items():
         setattr(dst, key, value)
 
-def _run_exp():
+def _run_exp_1():
     dt = strftime("%m%d%H%M%s", gmtime())  # datetime as an exp id
     resdir = os.path.join(cfg.PATHS['vardir'], 'res-'+dt)
     os.mkdir(resdir)
     top_trec = os.path.join(resdir, 'top_trec.res')
     evalfile = os.path.join(resdir, 'eval.out')
 
-    topics = utils.parse_topics(cfg.PATHS['topics'])  # read topics
-    # topics = utils.parse_topics(cfg.PATHS['extra-topics'])  # extra topics
+    topics = utils.parse_topics(cfg.PATHS['topics'], qexp_atoms=True)  # read
+    # topics
 
-    eval_metrics = [0, 0]
     with open(top_trec, 'w') as toptrec:
         for i, topic in enumerate(topics):
             if cfg.topic and i+1 != int(cfg.topic):
                 continue
-            print("\nTopic #{}".format(i+1))
+            print("\ntopic #{}".format(i+1))
             tfile = os.path.join(resdir, 't{}.res'.format(i+1))
-            ranked_docs = []
 
+            ranked_docs = []
             with open(tfile, 'w') as tfile_out:
                 res = solr.query(topic)
                 for rank, doc in enumerate(res['response']['docs']):
@@ -56,25 +55,7 @@ def _run_exp():
                     # write ranked list for trec_eval
                     toptrec.write("{} Q0 {} {} {} run_name\n".
                                   format(i+1, doc['id'], rank, doc['score']))
-
             print("result file [{}] written".format(tfile))
-
-
-            # if --evaluate on, compare the result with COSMIC ref data
-        #     reffile = os.path.join(cfg.base_dir,
-        #                            'data/cosmic_ref/t{}.cosmic'.format(i+1))
-        #     if cfg.evaluate and os.path.isfile(reffile):
-        #         with open(reffile) as f:
-        #             ref = f.read().splitlines()
-        #         (num_rel, infAP) = utils.evaluate(ranked_docs, ref)
-        #         eval_metrics[0] += infAP
-        #         eval_metrics[1] += 1
-        #         print("Evaluation [num_rel:{}, num_judged:{}, num_retrieved:{}]".
-        #               format(num_rel, len(ref), len(ranked_docs)))
-        #         print("infAP: {}".format(infAP))
-        # if cfg.evaluate:
-        #     print("\naverage infAP: {} (over {} topics)".
-        #           format(eval_metrics[0]/eval_metrics[1], eval_metrics[1]))
 
     if cfg.evaluate:
         # run trec_eval
@@ -118,4 +99,4 @@ if __name__ == '__main__':
     elif args.command == 'import_trials':
         solr.run_import_trials()
     elif args.command == 'exp':
-        _run_exp()
+        _run_exp_1()

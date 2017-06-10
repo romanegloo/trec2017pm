@@ -25,3 +25,17 @@ CONF_SOLR = {
     'rows': '500',  # number of returned rows
     'fl': '*,score'
 }
+CONF_MM = {
+    'restrict_to_sts': [
+        'aggp',  # T100|Age Group
+        'comd',  # T049|Cell or Molecular Dysfunction
+        'dsyn',  # T047|disease
+        'genf',  # T045|Genetic Fun ction
+        'gngm',  # T028|Gene or Genome
+        'neop',  # T191|Neoplastic Process
+        'nnon',  # T114|Nucleic Acid, Nucleoside, or Nucleotide
+    ]
+}
+CONF_UMLS = {
+    'api_key': '5cd21481-a538-4385-ad98-873b096397f5',
+}

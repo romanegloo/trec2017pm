@@ -8,16 +8,21 @@ import pprint
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from config import config as cfg
-from Trec2017pm.logger import Logger
-from Trec2017pm.utils import age_normalize
+import Trec2017pm.logger as logger
+import Trec2017pm.utils as utils
 
-logger = Logger()  # singleton
+logger = logger.Logger()  # singleton
 pp = pprint.PrettyPrinter(indent=4)
+
 
 def run_import_docs():
     """
     Given the xslt file, the medline files will be transformed and used to 
     update the existing record or create new record in the Solr core (medline)
+
+    note that the default JVM-memory size of solr is 500Mb which is not
+    enough for importing medline docs. Increase it to 4g as below:
+    "./solr restart -m 4g"
     """
 
     # - read xsl file
@@ -49,13 +54,15 @@ def run_import_docs():
 
     # if skip_files is given, read the list
     skip_files = []
-    if os.path.isfile(cfg.skip_files):
+    if cfg.skip_files and os.path.exists(cfg.skip_files):
         with open(cfg.skip_files) as f:
             skip_files = f.read().splitlines()
         skip_fh = open(cfg.skip_files, 'a', buffering=1)
 
     import gzip
 
+    # doc_files.append(
+    #     '/home/jiho/research/trec2017/data/articles/doc_sample-long.xml')
     for i, file in enumerate(doc_files):
         attempts = 3
         if file in skip_files:
@@ -67,12 +74,20 @@ def run_import_docs():
         logger.log('INFO', 'parsing a doc file {}'.format(file))
 
         # - convert to a solr update xml format
-        doc_trans = transformer(et.parse(gzip.open(file)))
+        _, ext = os.path.splitext(file)
+        if ext == 'gz':
+            doc_trans = transformer(et.parse(gzip.open(file)))
+        else:
+            doc_trans = transformer(et.parse(file))
+
+        # pre-process [CUI]
+        doc_trans = utils.extract_cuis(doc_trans)
 
         # - run update with the converted file
         url = "http://localhost:8983/solr/medline/update?commit=true"
         headers = {'content-type': 'text/xml; charset=utf-8'}
         while attempts > 0:
+            r = None
             try:
                 r = requests.post(url, data=et.tostring(doc_trans),
                                   headers=headers)
@@ -92,7 +107,8 @@ def run_import_docs():
                 # - log the results
                 logger.log('INFO', 'importing doc files in progress {}/{}'.
                            format(i+1, len(doc_files)), printout=True)
-                skip_fh.write(file + '\n')
+                if cfg.skip_files:
+                    skip_fh.write(file + '\n')
 
                 if cfg.sms and (i+1) % 100 == 0:
                     logger.sms('importing doc files {}/{}'. \
@@ -166,7 +182,7 @@ def run_import_trials():
         # - transform trial xml to solr update format
         trial_trans = transformer(et.parse(file))
         # - pre-indexing nlp process
-        age_normalize(trial_trans)
+        utils.age_normalize(trial_trans)
         if docs_collated < batch:
             req.append(trial_trans.getroot())
             docs_collated += 1
@@ -208,7 +224,7 @@ def run_import_trials():
     logger.log('INFO', 'importing trials completed', printout=True)
 
 
-def query(t, collection="medline"):
+def query(t, collection="medline", q_exp=False):
     url = "http://localhost:8983/solr/" + collection + "/query?"
     if 'fl' in cfg.CONF_SOLR:
         url += 'fl=' + cfg.CONF_SOLR['fl'] + '&'

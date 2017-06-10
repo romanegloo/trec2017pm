@@ -1,11 +1,17 @@
-import re
 import os
+import re
 import sys
 import lxml.etree as et
+from nltk import sent_tokenize
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+from config import config as cfg
 from Trec2017pm.logger import Logger
+from pymetamap import MetaMap
+from umls_api import UMLS_api
+
 logger = Logger()  # singleton
+mm = MetaMap.get_instance('/opt/public_mm/bin/metamap16')
 
 
 def age_normalize(dom):
@@ -51,7 +57,32 @@ def age_normalize(dom):
     return dom
 
 
-def parse_topics(path):
+def extract_cuis(docs):
+    """this takes so much time for parsing the entire document collection.
+    Moving forward to exploit umls_api synonyms using its rest-api"""
+    extract_from = ['subject', 'abstract']
+    for d in docs.xpath("//doc"):
+        text = []
+        for field in extract_from:
+            for elm in d.xpath("./field[@name='{}']".format(field)):
+                if elm.text and len(elm.text) > 0:
+                    text.append(' '.join(sent_tokenize(elm.text)))
+        concepts, error = \
+            mm.extract_concepts([' '.join(text)], **cfg.CONF_MM)
+
+        for c in concepts:
+            # print("{:>6} | {} => {} [{}, semtypes:{}]"
+            #       "".format(c.score, c.trigger, c.preferred_name, c.cui, c.semtypes))
+            cui = et.Element("field", name="CUI")
+            try:
+                cui.text = c.cui
+            except AttributeError as e:
+                continue
+            d.append(cui)
+    return docs
+
+
+def parse_topics(path, qexp_atoms=False):
     """query builder: read and pre-process the given topics and build queries
     
     example)
@@ -87,10 +118,22 @@ def parse_topics(path):
         """ 
         <disease>
         - expand with the preferred disease name in mesh terms
-        - CUI indexing
         """
-        q_terms.append(t[0].text)
+        # get CUI of the given disease name
         logger.log('INFO', '- disease/ name: {}'.format(t[0].text))
+        if qexp_atoms:
+        # if False:
+            with UMLS_api.Client() as client:
+                cuis = client.get_cuis(t[0].text)
+                atoms = client.get_atoms(cuis['results'][0]['ui'])
+                atom_names = ['"' + a['name'] + '"' for a in atoms]
+                atom_names_cc = ' OR '.join(atom_names)
+                q_terms.append("({})".format(atom_names_cc))
+                logger.log('INFO',
+                           "{} expands [{}]"
+                           "".format(t[0].text, atom_names_cc))
+        else:
+            q_terms.append(t[0].text)
 
         """
         <gene>
@@ -119,9 +162,39 @@ def parse_topics(path):
                 variation = None
             logger.log('INFO', '- gene/ name: {} variation: {}'.
                        format(gene_name, variation))
-            q_terms.append(gene_name)
-            if variation is not None:
-                q_terms.append(variation)
+            if qexp_atoms:
+                with UMLS_api.Client() as client:
+                    # get atoms of gene
+                    cuis = client.get_cuis(gene_name)
+                    atoms = client.get_atoms(cuis['results'][0]['ui'])
+                    if atoms is None:
+                        q_terms.append(gene_name)
+                    else:
+                        atom_names = ['"' + a['name'] + '"' for a in atoms]
+                        atom_names_cc = ' OR '.join(atom_names)
+                        q_terms.append("({})^2".format(atom_names_cc))
+                        logger.log('INFO',
+                                   "{} expands [{}]"
+                                   "".format(gene_name, atom_names_cc))
+
+                    # get atoms of gene+variation
+                    if variation is not None:
+                        cuis = client.get_cuis(gene_name + ' ' + variation)
+                        atoms = client.get_atoms(cuis['results'][0]['ui'])
+                        if atoms is None:
+                            q_terms.append(variation)
+                        else:
+                            atom_names = ['"' + a['name'] + '"' for a in atoms]
+                            atom_names_cc = ' OR '.join(atom_names)
+                            q_terms.append("({})^3".format(atom_names_cc))
+                            logger.log('INFO',
+                                       "{} expands [{}]"
+                                       "".format(variation, atom_names_cc))
+
+            else:
+                q_terms.append(gene_name)
+                if variation is not None:
+                    q_terms.append(variation)
 
 
         """
