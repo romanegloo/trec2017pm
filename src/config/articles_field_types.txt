@@ -1,0 +1,21 @@
+#
+# Solr field properties
+# - indexed (true)
+# - stored (true)
+# - docValues (false)  # column oriented docValue structure
+# - sortMissingFirst/sortMissingLast (false)
+# - multiValued (false)
+# - omitNorms (*)
+# - termVectors/termPositions/termOffsets/termPayloads (false)
+# - required (false)
+# - useDocValuesAsStored (true)
+# - large (false)
+
+curl -X POST -H 'Content-type:application/json' --data-binary '{
+    "add-field": {
+        "name":"subject",
+        "type":"text_general",
+        "indexed":true,
+        "multiValued":false
+    }
+}' http://localhost:8983/solr/medline/schema

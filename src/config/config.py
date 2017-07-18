@@ -1,12 +1,17 @@
 import os
+import socket
 
-base_dir = base_dir = '/home/jiho/research/trec2017/'
+if socket.gethostname() == 'Jiho-MBP.local':
+    base_dir = '/Users/jihonoh/projects/trec2017'
+else:
+    base_dir = '/home/jiho/research/trec2017/'
+debug = False
 PATHS = {
     'vardir': os.path.join(base_dir, 'var'),
     'logfile': os.path.join(base_dir, 'var/runner.log'),
-    'xsl-medline': os.path.join(base_dir, 'src/config/medline.xsl'),
+    'xsl-article': os.path.join(base_dir, 'src/config/articles.xsl'),
     'xsl-trial': os.path.join(base_dir, 'src/config/trials.xsl'),
-    'data-medline': os.path.join(base_dir, 'data/articles'),
+    'data-articles': os.path.join(base_dir, 'data/articles'),
     'data-trials': os.path.join(base_dir, 'data/clinicaltrials'),
     'topics': os.path.join(base_dir, 'data/topics2017.xml'),
     'extra-topics': os.path.join(base_dir, 'data/extra_topics.xml'),
@@ -22,11 +27,21 @@ CONF_TWILIO = {
     'auth_token': '81b060bae2907aa16c7d8ff92cbca48e'
 }
 CONF_SOLR = {
-    'rows': '500',  # number of returned rows
-    'fl': '*,score'
+    'rows': 500,  # number of returned rows
+    'fl': '*,score',
+    'umls_qe': ['disease', 'gene'],  # add query expansion on the fields
+    'wt_disease': 0.86,
+    'wt_meshDisease': 0.20,
+    'wt_gene': 1.01,
+    'wt_meshGene': 1.83,
+    'wt_mutation': 2.63,
+    'wt_meshMutation': 2.10,
+    'wt_meshDemo': 3.99,
+    'wt_other': 0.01,   # not using on articles yet
 }
 CONF_MM = {
     'restrict_to_sts': [
+        'aapp',  # T116|Amino Acid, Peptide, or Protein|
         'aggp',  # T100|Age Group
         'comd',  # T049|Cell or Molecular Dysfunction
         'dsyn',  # T047|disease
@@ -34,7 +49,8 @@ CONF_MM = {
         'gngm',  # T028|Gene or Genome
         'neop',  # T191|Neoplastic Process
         'nnon',  # T114|Nucleic Acid, Nucleoside, or Nucleotide
-    ]
+    ],
+    'silent': True
 }
 CONF_UMLS = {
     'api_key': '5cd21481-a538-4385-ad98-873b096397f5',

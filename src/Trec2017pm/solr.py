@@ -18,22 +18,23 @@ pp = pprint.PrettyPrinter(indent=4)
 def run_import_docs():
     """
     Given the xslt file, the medline files will be transformed and used to 
-    update the existing record or create new record in the Solr core (medline)
+    update the existing record or create new record in the Solr core (articles)
 
     note that the default JVM-memory size of solr is 500Mb which is not
     enough for importing medline docs. Increase it to 4g as below:
     "./solr restart -m 4g"
     """
+    import gzip
 
     # - read xsl file
-    if not os.path.isfile(cfg.PATHS['xsl-medline']):
-        logger.log('ERROR', 'xsl-medline [{}] cannot be found'.
-                   format(cfg.PATHS['xsl-medline']), die=True, printout=True)
+    if not os.path.isfile(cfg.PATHS['xsl-article']):
+        logger.log('ERROR', 'xsl-article [{}] cannot be found'.
+                   format(cfg.PATHS['xsl-article']), die=True, printout=True)
     else:
         logger.log('DEBUG', 'reading xsl file for medline xml files')
 
     try:
-        xslt = et.parse(cfg.PATHS['xsl-medline'])
+        xslt = et.parse(cfg.PATHS['xsl-article'])
         transformer = et.XSLT(xslt)
     except:
         e = sys.exc_info()[0]
@@ -42,7 +43,7 @@ def run_import_docs():
     # read all doc source files (*.gz) in part[1..5] directories
     # (total num of files must be 888)
     doc_files = []
-    for root, dirs, files in os.walk(cfg.PATHS['data-medline']):
+    for root, dirs, files in os.walk(cfg.PATHS['data-articles']):
         if not re.match(r"part[1-5]", root.split(os.sep)[-1]):
             continue
         for file in files:
@@ -50,7 +51,11 @@ def run_import_docs():
                 continue
             doc_files.append(os.path.join(root, file))
     logger.log('INFO', '{} medline documents found from {}'. \
-               format(len(doc_files), cfg.PATHS['data-medline']))
+               format(len(doc_files), cfg.PATHS['data-articles']))
+
+    # for debugging
+    # doc_files.append(
+    #     '/home/jiho/research/trec2017/data/articles/doc_sample-long.xml')
 
     # if skip_files is given, read the list
     skip_files = []
@@ -59,10 +64,6 @@ def run_import_docs():
             skip_files = f.read().splitlines()
         skip_fh = open(cfg.skip_files, 'a', buffering=1)
 
-    import gzip
-
-    # doc_files.append(
-    #     '/home/jiho/research/trec2017/data/articles/doc_sample-long.xml')
     for i, file in enumerate(doc_files):
         attempts = 3
         if file in skip_files:
@@ -80,11 +81,11 @@ def run_import_docs():
         else:
             doc_trans = transformer(et.parse(file))
 
-        # pre-process [CUI]
-        doc_trans = utils.extract_cuis(doc_trans)
+        # pre-process using metamap [CUI]
+        # doc_trans = utils.extract_cuis(doc_trans)
 
         # - run update with the converted file
-        url = "http://localhost:8983/solr/medline/update?commit=true"
+        url = "http://localhost:8983/solr/articles/update?commit=true"
         headers = {'content-type': 'text/xml; charset=utf-8'}
         while attempts > 0:
             r = None
@@ -117,6 +118,95 @@ def run_import_docs():
                 break
     logger.log('INFO', 'importing medline documents completed', printout=True)
 
+    # added for importing extra AACR documents
+    doc_files_extra = []
+    path_extra = os.path.join(cfg.PATHS['data-articles'], 'extra_abstracts')
+    for root, dirs, files in os.walk(path_extra):
+        for file in files:
+            if not file.startswith('AACR') or not file.endswith('txt'):
+                continue
+            doc_files_extra.append(os.path.join(root, file))
+
+    logger.log('INFO', '{} AACR documents found from {}'. \
+               format(len(doc_files_extra), path_extra), printout=True)
+
+
+    # creating document xml in solr add format
+    et_add = et.Element('add')
+    attempts = 3
+    for i, file in enumerate(doc_files_extra):
+        if file in skip_files:
+            logger.log('WARNING',
+                       'file already imported. skipping... {}'.format(file),
+                       printout=True)
+            sys.stdout.flush()
+            continue
+        with open(file) as f:
+            doc_lines = f.read().splitlines()
+
+        logger.log('INFO', 'parsing a doc file {}'.format(file), printout=True)
+        et_doc = et.Element('doc')
+        # use the filename as an id
+        id, _ = os.path.splitext(os.path.basename(file))
+        et_id = et.Element('field', name='id')
+        et_id.text = id
+        et_doc.append(et_id)
+
+        # journal-title
+        title = re.sub(r'^Meeting: ', '', doc_lines[0])
+        if len(title) > 0:
+            et_title = et.Element('field', name='journal-title')
+            et_title.text = title
+            et_doc.append(et_title)
+
+        # subject
+        subject = re.sub(r'^Title: ', '', doc_lines[1])
+        if len(subject) > 0:
+            et_subj = et.Element('field', name='subject')
+            et_subj.text = subject
+            et_doc.append(et_subj)
+
+        # abstract
+        abstract = ''.join(doc_lines[4:])
+        if len(abstract) > 0:
+            et_abs = et.Element('field', name='abstract')
+            et_abs.text = abstract
+            et_doc.append(et_abs)
+        et_add.append(et_doc)
+
+    # - run update with the converted file
+    url = "http://localhost:8983/solr/articles/update?commit=true"
+    headers = {'content-type': 'text/xml; charset=utf-8'}
+    while attempts > 0:
+        r = None
+        try:
+            r = requests.post(url, data=et.tostring(et_add),
+                              headers=headers)
+        except requests.exceptions.RequestException as e:
+            logger.log('ERROR', 'request exception: {}'.format(e),
+                       die=True, printout=True)
+
+        if r.status_code != 200:
+            attempts -= 1
+            logger.log('ERROR', 'requests error:')
+            logger.log('ERROR', r.text)
+            r.raise_for_status()
+            if attempts < 0:
+                logger.log('CRITICAL', 'terminating', die=True,
+                           printout=True)
+        else:
+            # - log the results
+            logger.log('INFO', 'importing doc files in progress {}/{}'.
+                       format(i+1, len(doc_files_extra)), printout=True)
+            if cfg.skip_files:
+                skip_fh.write(file + '\n')
+
+            if cfg.sms and (i+1) % 1000 == 0:
+                logger.sms('importing doc files {}/{}'. \
+                           format(i+1, len(doc_files_extra)))
+
+            break
+
 
 def run_import_trials():
     """
@@ -135,7 +225,6 @@ def run_import_trials():
     else:
         logger.log('DEBUG', 'reading xsl file for clinical trials xml files')
 
-    import lxml.etree as et  # for xml transformation
     try:
         xslt = et.parse(cfg.PATHS['xsl-trial'])
         transformer = et.XSLT(xslt)
@@ -224,12 +313,70 @@ def run_import_trials():
     logger.log('INFO', 'importing trials completed', printout=True)
 
 
-def query(t, collection="medline", q_exp=False):
-    url = "http://localhost:8983/solr/" + collection + "/query?"
+def run_queries(queries, res_path, target):
+    assert target in ['a', 't', 'b'], "target source is undefined"
+    top_docs_a = os.path.join(res_path, 'top_articles.out')
+    top_docs_t = os.path.join(res_path, 'top_trials.out')
+
+    if target in ['a', 'b']:
+        with open(top_docs_a, 'w') as top_docs:
+            for i, query in enumerate(queries):
+                # if cfg.topic and i+1 != int(cfg.topic):
+                #     print('skipping', i, cfg.topic)
+                #     continue
+
+                print("querying topic #{} on articles".format(i+1))
+                sys.stdout.flush()
+                ranked_docs = []
+                res = _query(query, target='a')
+                for rank, doc in enumerate(res['response']['docs']):
+                    ranked_docs.append(doc['id'])
+                    # write ranked list for trec_eval
+                    topic = int(cfg.topic) if cfg.topic else i+1
+                    top_docs.write("{} Q0 {} {} {} run_name\n".
+                                   format(topic, doc['id'], rank, doc['score']))
+                # save query per topic
+                qfile = os.path.join(res_path, 'a{}.query'.format(i+1))
+                with open(qfile, 'w') as qf:
+                    qf.write(query['query'] + "\n")
+        logger.log('INFO', "result file [{}] saved".format(top_docs_a),
+                   printout=True)
+    if target in ['t', 'b']:
+        with open(top_docs_t, 'w') as top_docs:
+            for i, query in enumerate(queries):
+                # if cfg.topic and i+1 != int(cfg.topic):
+                #     continue
+
+                ranked_docs = []
+                print("querying topic #{} on trials".format(i+1))
+                res = _query(query, target='t')
+                for rank, doc in enumerate(res['response']['docs']):
+                    ranked_docs.append(doc['id'])
+                    # write ranked list for trec_eval
+                    topic = int(cfg.topic) if cfg.topic else i+1
+                    top_docs.write("{} Q0 {} {} {} run_name\n".
+                                   format(topic, doc['id'], rank, doc['score']))
+                    if rank < 10:
+                        top_docs.write("official_title: {}"
+                                       "".format(doc['official_title']))
+                # save query per topic
+                qfile = os.path.join(res_path, 't{}.query'.format(i+1))
+                with open(qfile, 'w') as qf:
+                    qf.write(query['query'] + "\n")
+        logger.log('INFO', "result file [{}] saved".format(top_docs_t),
+                   printout=True)
+
+
+def _query(t, target):
+    if target == 'a':
+        url = "http://localhost:8983/solr/articles/query?"
+    elif target == 't':
+        url = "http://localhost:8983/solr/trials/query?"
+
     if 'fl' in cfg.CONF_SOLR:
         url += 'fl=' + cfg.CONF_SOLR['fl'] + '&'
     if 'rows' in cfg.CONF_SOLR:
-        url += 'rows=' + cfg.CONF_SOLR['rows'] + '&'
+        url += 'rows=' + str(cfg.CONF_SOLR['rows']) + '&'
     headers = {
         'content-type': 'application/json',
         'Accept-Charset': 'UTF-8'}
@@ -240,7 +387,7 @@ def query(t, collection="medline", q_exp=False):
         logger.log('ERROR', r, die=True, printout=True)
 
     if r.status_code != 200:
-        logger.log('ERROR', r.text, printout=True)
+        logger.log('ERROR', t, printout=True)
     else:
         logger.log('INFO', 'query processed: {}'.format(t))
         res = json.loads(r.text)

@@ -23,8 +23,8 @@
 
     <xsl:template match="MeshHeadingList">
         <xsl:for-each select="MeshHeading/DescriptorName">
-            <field name="MeshHeading"> <xsl:value-of select="."/> </field>
-            <field name="MeshHeading@UI"> <xsl:value-of select="@UI"/> </field>
+            <field name="meshHeading"> <xsl:value-of select="."/> </field>
+            <field name="MeshHeading_UI"> <xsl:value-of select="@UI"/> </field>
         </xsl:for-each>
     </xsl:template>
 
@@ -33,7 +33,7 @@
             <field name="Chemical">
                 <xsl:value-of select="NameOfSubstance"/>
             </field>
-            <field name="Chemical@UI">
+            <field name="Chemical_UI">
                 <xsl:value-of select="NameOfSubstance/@UI"/>
             </field>
         </xsl:for-each>

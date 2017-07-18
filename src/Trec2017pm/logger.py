@@ -59,7 +59,7 @@ class Logger(object):
 
     def sms(self, msg):
         """ send sms message to me """
-        res = self.twilio_cl.message.create(
+        res = self.twilio_cl.messages.create(
             to='+' + cfg.CONF_TWILIO['num_to'],
             from_='+' + cfg.CONF_TWILIO['num_from'],
             body=msg)

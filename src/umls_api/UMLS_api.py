@@ -75,7 +75,6 @@ class Client(object):
         q = {
             'ticket': ticket,
             'sabs': 'NCI',
-
         }
         r = requests.get("{}/CUI/{}/atoms?language=ENG"
                          "".format(endpoint['content'], cui), params=q)
