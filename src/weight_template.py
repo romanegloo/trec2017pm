@@ -2,7 +2,7 @@
 
 import os
 
-template_dir = '../var/res-weight_template_2'
+template_dir = '../var/q_tmpl-exp12'
 
 for i in range(1, 31):
     file = os.path.join(template_dir, 'a{}.query'.format(i))
@@ -10,13 +10,14 @@ for i in range(1, 31):
     if os.path.exists(file):
         with open(file) as f_query:
             q = f_query.read()
-    q = q.replace("1.111", "<WT1>")
-    q = q.replace("2.222", "<WT2>")
-    q = q.replace("3.333", "<WT3>")
-    q = q.replace("4.444", "<WT4>")
-    q = q.replace("5.555", "<WT5>")
-    q = q.replace("6.666", "<WT6>")
-    q = q.replace("7.777", "<WT7>")
+    q = q.replace("0.6171", "<WT1>")  # disease name
+    q = q.replace("1.3954", "<WT2>")  # disease meshHeading
+    q = q.replace("1.7781", "<WT3>")  # gene name
+    q = q.replace("0.9272", "<WT4>")  # gene meshHeading
+    q = q.replace("0.9553", "<WT5>")  # mutation name
+    q = q.replace("2.2484", "<WT6>")  # mutation meshHeading
+    q = q.replace("5.8368", "<WT7>")  # demographic
+    q = q.replace("0.2486", "<WT8>")  # conjunctive
     with open(os.path.join(template_dir, 'a{}.template'.format(i)), 'w') \
             as f_tmpl:
         f_tmpl.write(q)

@@ -313,14 +313,184 @@ def run_import_trials():
     logger.log('INFO', 'importing trials completed', printout=True)
 
 
-def run_queries(queries, res_path, target):
+def run_import_extra():
+    """
+    mti resulting list format (just the facts):
+
+    AACR_2015-1651|Humans|C0086418|388962|1969^8^0
+    AACR_2015-1651|Mice|C0026809|388962|2198^4^0;2091^4^0
+    AACR_2015-1651|Animals|C0003062|388962|2198^4^0;2091^4^0;868^6^0;1324^7^0
+    AACR_2015-1651|Glioblastoma|C0017636|387962|1142^3^0;963^3^0;292^23^0
+    """
+    path_extra = cfg.PATHS['data-articles'] + '/extra_abstracts'
+    file_mti = cfg.PATHS['data-articles'] + '/extra_mti_mesh.txt'
+    # read mti result file, and create dict of doc to meshHeading list
+    newMesh = dict()
+    meshes = []
+    # debug = 100
+    if not os.path.isfile(file_mti):
+        print(file_mti)
+        confirm = input("meshHeading index file does not exist, continue "
+                        "[Y/n]? ").lower()
+        if confirm != 'y':
+            return
+
+    logger.log('INFO', 'reading mti index files for extra articles',
+               printout=True)
+    with open(file_mti) as inf:
+        for line in inf:
+            terms = line.split('|')
+            if len(terms) >= 4:
+                id, mesh, cui, score = line.split('|')[:4]
+            else:
+                print("warn: not enough terms found\n\t", line)
+                continue
+
+            if id not in newMesh:
+                newMesh[id] = set()
+            newMesh[id].add(mesh)
+            # debug -= 1
+            # if debug < 0:
+            #     break
+
+    # iterate extra documents, and update (actually re-build indexes) docs
+    doc_files = []
+    cnt = [0] * 3
+    for root, dirs, files in os.walk(path_extra):
+        for file in files:
+            if file.startswith('AACR'):
+                cnt[0] += 1
+                doc_files.append(os.path.join(path_extra, file))
+            elif file.startswith('ASCO'):
+                cnt[1] += 1
+                doc_files.append(os.path.join(path_extra, file))
+            else:
+                cnt[2] += 1
+        logger.log('INFO', "listed files: AACR({}), ASCO({}), other({})"
+                   "".format(cnt[0], cnt[1], cnt[2]), printout=True)
+    # if skip_files is given, rea the list
+    skip_files = []
+    if cfg.skip_files and os.path.exists(cfg.skip_files):
+        with open(cfg.skip_files) as f:
+            skip_files = f.read().splitlines()
+        skip_fh = open(cfg.skip_files, 'a', buffering=1)
+    else:
+        print(cfg.skip_files, len(skip_files))
+        return
+
+    # iterate doc files
+    num_batch = 1000
+    collated = 0
+    et_add = None
+    attempts = 3
+    url = "http://localhost:8983/solr/articles/update?commit=true"
+    headers = {'content-type': 'text/xml; charset=utf-8'}
+
+    for i, file in enumerate(doc_files):
+        if collated == 0:
+            et_add = et.Element('add')
+        if file in skip_files:
+            logger.log('WARNING',
+                       'file already imported. skipping... {}'.format(file),
+                       printout=True)
+            sys.stdout.flush()
+            continue
+
+        logger.log('INFO', 'parsing a doc file {}'.format(file), printout=True)
+        et_doc = et.Element('doc')
+        with open(file) as f:
+            # use the filename as an id
+            filename, ext = os.path.splitext(file)
+            id = filename.split(os.sep)[-1]
+            et_id = et.Element('field', name='id')
+            et_id.text = id
+            et_doc.append(et_id)
+
+            doc = f.read()
+            doc = ''.join([i if ord(i) < 128 else ' ' for i in doc])
+            doc = doc.splitlines()
+            title, subject = doc[:2]
+            # journal-title
+            title = re.sub(r'^Meeting: ', '', doc[0])
+            if len(title) > 0:
+                et_title = et.Element('field', name='journal-title')
+                et_title.text = title
+                et_doc.append(et_title)
+            # subject
+            subject = re.sub(r'^Title: ', '', subject)
+            if len(subject) > 0:
+                et_subj = et.Element('field', name='subject')
+                et_subj.text = subject
+                et_doc.append(et_subj)
+            # abstract
+            abstract = ''.join(doc[4:])
+            if len(abstract) > 0:
+                et_abs = et.Element('field', name='abstract')
+                et_abs.text = abstract
+                et_doc.append(et_abs)
+            # add corresponding meshHeadings
+            if id in newMesh:
+                for mesh in newMesh[id]:
+                    et_mesh = et.Element('field', name='meshHeading')
+                    et_mesh.text = mesh
+                    et_doc.append(et_mesh)
+
+        et_add.append(et_doc)
+        collated += 1
+
+        # run update with the collated doc files
+        if collated >= num_batch or i >= len(doc_files) - 1:
+            print("it.{} {} docuemtns will be updated"
+                  "".format(i, len(et_add)))
+            while attempts > 0:
+                r = None
+                try:
+                    r = requests.post(url, data=et.tostring(et_add),
+                                      headers=headers)
+                except requests.exceptions.RequestException as e:
+                    logger.log('ERROR', 'request exception: {}'.format(e),
+                               die=True, printout=True)
+
+                if r.status_code != 200:
+                    attempts -= 1
+                    logger.log('ERROR', 'requests error:')
+                    logger.log('ERROR', r.text)
+                    r.raise_for_status()
+                    if attempts < 0:
+                        logger.log('CRITICAL', 'terminating', die=True,
+                                   printout=True)
+                else:
+                    # - log the results
+                    logger.log('INFO', 'importing doc files in progress {}/{}'.
+                               format(i + 1, len(doc_files)), printout=True)
+                    if cfg.skip_files:
+                        skip_fh.write(file + '\n')
+
+                    if cfg.sms and (i + 1) % 10000 == 0:
+                        logger.sms('importing doc files {}/{}'. \
+                                   format(i + 1, len(doc_files)))
+                    collated = 0
+                    break
+
+
+def run_queries(queries, res_path, target, q_no=None, save_queries=True):
     assert target in ['a', 't', 'b'], "target source is undefined"
-    top_docs_a = os.path.join(res_path, 'top_articles.out')
-    top_docs_t = os.path.join(res_path, 'top_trials.out')
+
+    if cfg.CONF_SOLR['enable_conj_uprank']:
+        top_docs_a = os.path.join(res_path, 'top_articles-cjt.out')
+        top_docs_t = os.path.join(res_path, 'top_trials-cjt.out')
+    else:
+        top_docs_a = os.path.join(res_path, 'top_articles.out')
+        top_docs_t = os.path.join(res_path, 'top_trials.out')
 
     if target in ['a', 'b']:
         with open(top_docs_a, 'w') as top_docs:
-            for i, query in enumerate(queries):
+            if q_no is not None and len(q_no) == len(queries):
+                q_no = [x - 1 for x in q_no]
+                z_queries = zip(q_no, queries)
+            else:
+                z_queries = zip(range(len(queries)), queries)
+            for i, query in z_queries:
                 # if cfg.topic and i+1 != int(cfg.topic):
                 #     print('skipping', i, cfg.topic)
                 #     continue
@@ -336,9 +506,13 @@ def run_queries(queries, res_path, target):
                     top_docs.write("{} Q0 {} {} {} run_name\n".
                                    format(topic, doc['id'], rank, doc['score']))
                 # save query per topic
-                qfile = os.path.join(res_path, 'a{}.query'.format(i+1))
-                with open(qfile, 'w') as qf:
-                    qf.write(query['query'] + "\n")
+                if save_queries:
+                    if cfg.CONF_SOLR['enable_conj_uprank']:
+                        qfile = os.path.join(res_path, 'a{}-cjt.query'.format(i+1))
+                    else:
+                        qfile = os.path.join(res_path, 'a{}.query'.format(i+1))
+                    with open(qfile, 'w') as qf:
+                        qf.write(query['query'] + "\n")
         logger.log('INFO', "result file [{}] saved".format(top_docs_a),
                    printout=True)
     if target in ['t', 'b']:
@@ -356,13 +530,16 @@ def run_queries(queries, res_path, target):
                     topic = int(cfg.topic) if cfg.topic else i+1
                     top_docs.write("{} Q0 {} {} {} run_name\n".
                                    format(topic, doc['id'], rank, doc['score']))
-                    if rank < 10:
-                        top_docs.write("official_title: {}"
-                                       "".format(doc['official_title']))
-                # save query per topic
-                qfile = os.path.join(res_path, 't{}.query'.format(i+1))
-                with open(qfile, 'w') as qf:
-                    qf.write(query['query'] + "\n")
+                if save_queries:
+                    # save query per topic
+                    if cfg.CONF_SOLR['enable_conj_uprank']:
+                        qfile = os.path.join(res_path,
+                                             't{}-cjt.query'.format(i+1))
+                    else:
+                        qfile = os.path.join(res_path,
+                                             't{}.query'.format(i+1))
+                    with open(qfile, 'w') as qf:
+                        qf.write(query['query'] + "\n")
         logger.log('INFO', "result file [{}] saved".format(top_docs_t),
                    printout=True)
 

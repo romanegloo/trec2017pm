@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 
 t = range(0, 31)
